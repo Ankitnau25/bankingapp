@@ -1,0 +1,343 @@
+Login Funct
+from functionality import LoginFunctions
+from functionality import RegisterFunctions
+print("+------------------------+")
+print("| Welcome to PyMobile    |")
+print("+------------------------+")
+print("Choose an Option from below:\n")
+
+end=False
+while(end==False):
+    print("1. Login")
+    print("2. Register")
+    print("3. Exit")
+    option=input()
+    if(option.isdigit() and (int(option)>=1 or int(option)<=3)):
+        if(int(option)==1): 
+            print("Login")
+            LoginFunctions.Login()
+        if(int(option)==2):
+            print("Register")
+            RegisterFunctions.register()
+        if(int(option)==3):
+            print("Thank You")
+            end=True
+        if (int(option)>3):
+            print("Please enter a valid option (1,2,3,4)")
+    else:
+        print("Please enter a valid option (1,2,3,4)")
+tranfer func
+import time
+import datetime
+from validations import LoginValidations
+from exceptions.CustomExceptions import *
+from database import LoginDB
+from functionality.acc_deposits import accounts_details
+from functionality.BillsFunction import Bill
+from functionality.Recent_transactions import Transaction_details
+from functionality.Loan_transactions import Loan
+def Transfer(uid,upass):
+    userchoice='Y'
+    while(userchoice!='N'):
+        try:
+            print("Enter the choice")   
+            print("1. Fund Transfer")
+            print("2. Account and Deposits")
+            print("3. Bill Payments")
+            print("4. View Recent Transactions")
+            print("5. Apply for Loan")
+            uch=int(input())
+            if(uch==1):
+                print("Enter the choice") 
+                print("1. Transfer through Account No")
+                print("2. Transfer through MMID") 
+                ucho=int(input())
+                if(ucho==1):
+                    print("Enter payee account No")
+                    accno=int(input())
+                    print("Enter payee account Name")
+                    accname=input()
+                    print("IFSC Code")
+                    ifsc=input()
+                    ch='N'
+                    while(ch!='Y'):
+                        print("Amount to be Transfered")
+                        amoun=int(input())
+                        print("CONFIRM (Y/N)")
+                        conf=input()
+                        ch=conf.upper()
+                    print("Please enter your Unique id to transfer")
+                    uide=input()
+                    list=LoginValidations.validate_accno(accno)
+                    #print("accountno validated")
+                    list=LoginValidations.validate_accname(accno,accname)
+                    #print("accountname validated")
+                    list=LoginValidations.validate_ifsc(accno,ifsc)
+                    #print("Ifsc code validated")
+                    list=LoginValidations.validate_uniqueid(accno,uide)
+                    #print("Unique  Id validated")
+                    '''Validating from payee table  '''
+                    #userid of user, accno of payee
+                    Payeetime=LoginValidations.validate_payee(uid,accno)#
+                    #print("Payeetime",Payeetime)
+                    pli=str(Payeetime).split(" ")
+                    curt=time.localtime()
+                    cdate=datetime.date.today()
+                    #print("current time",curt)
+                    #print("cuurentdate",cdate)
+                    #print("P time",pli[1])
+                    #print("P date",pli[0])
+                    ptimeli=pli[1].split(":")
+                    if(str(cdate)==str(pli[0])):
+                        if(curt.tm_hour==int(ptimeli[0])):
+                            if(curt.tm_min-int(ptimeli[1])<30):
+                                flag=1
+                                LoginValidations.validate_payee_time(flag)
+                         
+                    '''payee time validations '''
+                    #print("Length of list",len(list))
+                    accli=LoginValidations.validate_balance(uid,amoun)
+                    #print("balance and accountno",accli[0])
+                    print("Transfering amount",amoun)
+                    LoginDB.update_balance(accli[1],accno,amoun)
+                    #Both user and payee details update 
+                    print("Transfer Succesful")
+                    '''adding to transfer details '''
+                    LoginDB.update_transaction(accli[1],'IFD',accno,amoun)
+                    '''end'''
+                    print("Do you wish to continue (Y/N)")
+                    userchoice=input()
+                    if(userchoice=='Y'):
+                        continue;
+                    else:
+                        return
+                if(ucho==2):
+                    print("Enter mmid No")
+                    mmid=int(input())
+                    print("Enter Mobile No")
+                    mno=int(input())
+                    ch='N'
+                    while(ch!='Y'):
+                        print("Amount to be Transfered")
+                        amoun=int(input())
+                        print("CONFIRM (Y/N)")
+                        conf=input()
+                        ch=conf.upper()
+                    print("Enter Your UniqueId")  
+                    uniq=input() 
+                    list=LoginValidations.validate_mmid(mmid)
+                    #print("mmid validated")
+                    list=LoginValidations.validate_mobile(mmid,mno)
+                    #print("mobile no validated")
+                    list=LoginValidations.validate_uniqueid_mmid(uniq)
+                    #print("unique id validated")
+                    accli=LoginValidations.validate_balance(uid,amoun)
+                    #print("balance and accountno",accli[0])
+                    print("Transfering amount",amoun)
+                    LoginDB.update_balance_mmid(accli[1],mmid,amoun)
+                    print("Transfer Succesful")
+                    '''adding to transfer details '''
+                    accno=LoginDB.reterive(mmid,mno)
+                    #user accno 
+                    LoginDB.update_transaction(accli[1],'MMT',accno[0],amoun)
+                    #
+                    '''end'''
+                    print("Do you wish to continue (Y/N)")
+                    userchoice=input()
+                    if(userchoice=='Y'):
+                        continue;
+                    else:
+                        return  
+            if(uch==2):
+                accounts_details(uid)
+                return 
+            if(uch==3):
+                Bill(uid)
+                return
+            if(uch==4):
+                Transaction_details(uid)  
+                return  
+            if(uch==5):
+                Loan(uid)  
+                return       
+        except InvalidAccountNoException as e:
+                print(e)
+                print("Do you wish to continue (Y/N)")
+                userchoice=input()
+                if(userchoice=='Y'):
+                    continue;
+                else:
+                    return
+            
+        except InvalidAccountNameException as e:
+                print(e)
+                print("Do you wish to continue (Y/N)")
+                userchoice=input()
+                if(userchoice=='Y'):
+                    continue;
+                else:
+                    return    
+        except InvalidIfscException as e:
+                print(e)
+                print("Do you wish to continue (Y/N)")
+                userchoice=input()
+                if(userchoice=='Y'):
+                    continue;
+                else:
+                    return
+        except InvalidUniqueIdException as e:
+                print(e)
+                print("Do you wish to continue (Y/N)")
+                userchoice=input()
+                if(userchoice=='Y'):
+                    continue;
+                else:
+                    return
+        except InsufficientamountException as e:
+                print(e)
+                print("Do you wish to continue (Y/N)")
+                userchoice=input()
+                if(userchoice=='Y'):
+                    continue;
+                else:
+                    return
+        except InvalidMMIDException as e:
+                print(e)
+                print("Do you wish to continue (Y/N)")
+                userchoice=input()
+                if(userchoice=='Y'):
+                    continue;
+                else:
+                    return
+        except InvalidMobileException as e:
+                print(e)
+                print("Do you wish to continue (Y/N)")
+                userchoice=input()
+                if(userchoice=='Y'):
+                    continue;
+                else:
+                    return 
+        except InvalidUniqueException as e:
+                print(e)
+                print("Do you wish to continue (Y/N)")
+                userchoice=input()
+                if(userchoice=='Y'):
+                    continue;
+                else:
+                    return
+        except Invalidpayee_time_Exception as e:
+                print(e)
+                print("Do you wish to continue (Y/N)")
+                userchoice=input()
+                if(userchoice=='Y'):
+                    continue;
+                else:
+                    return
+        except InvalidpayeeException as e:        
+                print(e)
+                print("Do you wish to continue (Y/N)")
+                userchoice=input()
+                if(userchoice=='Y'):
+                    continue;
+                else:
+                    return        
+                                     
+  import random
+from validations import LoginValidations
+from exceptions.CustomExceptions import *
+from database import LoginDB
+def Bill(uid):
+    ch="Y"
+    while(ch!='N'):
+        try:
+            print("Welcome  ",uid)
+            print("1. Pay Bills")
+            print("2. Add Billers")
+            choice=int(input())
+            if(choice==1):
+                    list=LoginDB.Billers(uid);
+                    count=1
+                    for i in list:
+                        print(count,".",i.get_acc_name(),i.get_amount_due())  
+                        count+=1 
+                    print("Choose the Biller")
+                    billch=int(input())       
+                    amount=int(input("Enter the amount to be paid"))  
+                    confirm=input("Enter Y/N ")
+                    accli=LoginValidations.validate_balance(uid,amount) 
+                    x=accli[1]
+                    y=list[billch-1].get_acc_no()
+                    if(confirm=='Y'):  
+                        for j in range(0,len(list)): 
+                            if(j==(billch-1)): 
+                                #print(list[j].get_acc_name())
+                                list=LoginDB.UpdateBillers(uid,list[j].get_acc_no(),amount) 
+                        LoginDB.update_transaction(x,'IFD',y,amount) 
+                        LoginDB.update_transaction(y,'IFD',x,amount) 
+                        print("Transfer succesfull") 
+                        userchoice=input("Do u wish to continue (Y/N)")
+                        if(userchoice=='Y'):
+                            continue;
+                        else:
+                            return 
+                                        
+                    else: 
+                        userchoice=input("Do u wish to continue (Y/N)")
+                        if(userchoice=='Y'):
+                            continue;
+                        else:
+                            return
+                                
+            if(choice==2):
+                    accno=int(input("Enter Account No"))
+                    accna=input("Enter Account Name")
+                    T_bill=input("Enter Type Of Biller")
+                    confirm=input("Enter Y/N ")
+                    if(confirm=='Y'): 
+                        list=LoginValidations.validate_accno(accno)
+                        list=LoginValidations.validate_accname(accno,accna)
+                        LoginDB.Insert_Biller(uid,accno,accna,T_bill)
+                        print("Biller added succesfully")
+                        userchoice=input("Do u wish to continue (Y/N)")
+                        if(userchoice=='Y'):
+                            continue;
+                        else:
+                            return
+                    else:
+                        userchoice=input("Do u wish to continue (Y/N)")
+                        if(userchoice=='Y'):
+                            continue;
+                        else:
+                            return  
+                        
+                
+                
+                            
+        except InsufficientamountException as e:
+                print(e)
+                userchoice=input("Do u wish to continue (Y/N)")
+                if(userchoice=='Y'):
+                        continue;
+                else:
+                        return                        
+            
+        except InvalidAccountNoException as e:
+                print(e)
+                userchoice=input("Do u wish to continue (Y/N)")
+                if(userchoice=='Y'):
+                        continue;
+                else:
+                        return
+        except InvalidAccountNameException as e:
+                print(e)
+                userchoice=input("Do u wish to continue (Y/N)")
+                if(userchoice=='Y'):
+                        continue;
+                else:
+                        return    
+
+                
+             
+              
+
+    
